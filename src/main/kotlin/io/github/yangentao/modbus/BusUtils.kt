@@ -2,11 +2,8 @@
 
 package io.github.yangentao.modbus
 
-import io.github.yangentao.types.CRC
-import io.github.yangentao.types.bytes2Int
-import io.github.yangentao.types.format
-import io.github.yangentao.types.low0
-import io.github.yangentao.types.low1
+import io.github.yangentao.types.*
+import java.util.concurrent.*
 
 fun busAreaFromAction(action: Int): Int {
     return when (action) {
@@ -51,4 +48,63 @@ fun ByteArray.floatValuePLC(offset: Int): Float {
     //b0, b1, b2, b3 => b1, b0, b3, b2
     val n = this.intValuePLC(offset)
     return java.lang.Float.intBitsToFloat(n)
+}
+
+object BusTasks {
+    val service: ScheduledExecutorService = Executors.newScheduledThreadPool(4) {
+        Thread(it, "TaskScheduled").apply {
+            isDaemon = true
+            priority = Thread.NORM_PRIORITY
+            setUncaughtExceptionHandler(::uncaughtException)
+        }
+    }
+
+    //result = exec. submit(aCallable).get()
+    fun <T> call(time: TimeValue, task: Callable<T>): ScheduledFuture<T> {
+        return service.schedule(task, time.value, time.unit)
+    }
+
+    //result = exec. submit(aCallable).get()
+    fun <T> call(task: Callable<T>): Future<T> {
+        return service.submit(task)
+    }
+
+    fun submit(task: Runnable): Future<*> {
+        return service.submit(task)
+    }
+
+    //TimeUnit.MILLISECONDS
+    fun delayMill(delay: Long, block: Runnable): ScheduledFuture<*> {
+        return service.schedule(block, delay, TimeUnit.MILLISECONDS)
+    }
+
+    //TimeUnit.MILLISECONDS
+    fun fixedDelayMill(delay: Long, block: Runnable): ScheduledFuture<*> {
+        return service.scheduleWithFixedDelay(block, delay, delay, TimeUnit.MILLISECONDS)
+    }
+
+    //TimeUnit.MILLISECONDS
+    fun fixedRateMill(period: Long, block: Runnable): ScheduledFuture<*> {
+        return service.scheduleAtFixedRate(block, period, period, TimeUnit.MILLISECONDS)
+    }
+
+    fun delay(delay: TimeValue, block: Runnable): ScheduledFuture<*> {
+        return service.schedule(block, delay.value, delay.unit)
+    }
+
+    fun fixedDelay(delay: TimeValue, block: Runnable): ScheduledFuture<*> {
+        return service.scheduleWithFixedDelay(block, delay.value, delay.value, delay.unit)
+    }
+
+    fun fixedRate(period: TimeValue, block: Runnable): ScheduledFuture<*> {
+        return service.scheduleAtFixedRate(block, period.value, period.value, period.unit)
+    }
+
+}
+
+@Suppress("UNUSED_PARAMETER")
+internal fun uncaughtException(thread: Thread, ex: Throwable) {
+    printX("uncaughtException: ", thread.name)
+    printX(ex)
+    ex.printStackTrace()
 }

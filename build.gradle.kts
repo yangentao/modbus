@@ -32,8 +32,9 @@ dependencies {
     testImplementation(kotlin("test"))
     implementation(kotlin("reflect"))
     implementation(kotlin("stdlib"))
-    implementation("io.github.yangentao:tcp:[1.0.0,)")
-    api("io.github.yangentao:types:[1.0.1,)")
+    api("io.github.yangentao:tcp:[1.0.0,)")
+    api("io.github.yangentao:types:[1.0.2,)")
+    api("io.github.yangentao:sql:[1.0.0,)")
 }
 
 tasks.test {
