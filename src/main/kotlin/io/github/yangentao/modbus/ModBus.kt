@@ -2,6 +2,8 @@
 
 package io.github.yangentao.modbus
 
+import io.github.yangentao.modbus.proto.BusRequest
+import io.github.yangentao.modbus.proto.BusResponse
 import io.github.yangentao.tcp.attr
 import io.github.yangentao.tcp.write
 import java.nio.channels.SelectionKey

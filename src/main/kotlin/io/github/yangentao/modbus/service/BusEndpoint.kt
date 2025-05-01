@@ -1,7 +1,7 @@
 package io.github.yangentao.modbus.service
 
-import io.github.yangentao.modbus.BusRequest
-import io.github.yangentao.modbus.BusResponse
+import io.github.yangentao.modbus.proto.BusRequest
+import io.github.yangentao.modbus.proto.BusResponse
 import java.util.concurrent.ConcurrentHashMap
 
 abstract class BusEndpoint(val context: BusContext) {

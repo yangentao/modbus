@@ -7,8 +7,8 @@ import io.github.yangentao.anno.Label
 import io.github.yangentao.anno.Length
 import io.github.yangentao.anno.ModelField
 import io.github.yangentao.kson.KsonObject
-import io.github.yangentao.modbus.BusAddress
-import io.github.yangentao.modbus.BusWriteRequest
+import io.github.yangentao.modbus.proto.BusAddress
+import io.github.yangentao.modbus.proto.BusWriteRequest
 import io.github.yangentao.sql.TableModel
 import io.github.yangentao.sql.TableModelClass
 import io.github.yangentao.sql.clause.ASC

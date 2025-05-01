@@ -1,9 +1,10 @@
 @file:Suppress("MemberVisibilityCanBePrivate", "unused")
 
-package io.github.yangentao.modbus
+package io.github.yangentao.modbus.proto
 
 
-import io.github.yangentao.modbus.BusAddress
+import io.github.yangentao.modbus.busAreaFromAction
+import io.github.yangentao.modbus.checkCRC16
 import io.github.yangentao.types.Hex
 import io.github.yangentao.types.bytes2Int
 import io.github.yangentao.types.uintValue
@@ -23,7 +24,7 @@ class BusReadResponse(slave: Int, action: Int, val size: Int, val data: ByteArra
 }
 
 class BusWriteResponse(slave: Int, action: Int, val register: Int, val size: Int) : BusResponse(slave, action) {
-    val address: BusAddress get() = BusAddress(area * 10000 + register + 1, slave)
+    val address: BusAddress get() = _root_ide_package_.io.github.yangentao.modbus.proto.BusAddress(area * 10000 + register + 1, slave)
 
     override fun toString(): String {
         return "BusWriteResponse slave:$slave aciton:$action register:$register size:$size"
@@ -31,7 +32,7 @@ class BusWriteResponse(slave: Int, action: Int, val register: Int, val size: Int
 }
 
 class BusWriteOneResponse(slave: Int, action: Int, val register: Int, val value: Int) : BusResponse(slave, action) {
-    val address: BusAddress get() = BusAddress(area * 10000 + register + 1, slave)
+    val address: BusAddress get() = _root_ide_package_.io.github.yangentao.modbus.proto.BusAddress(area * 10000 + register + 1, slave)
 
     override fun toString(): String {
         return "BusWriteOneResponse slave:" + slave.toString() + " aciton:" + action.toString() + " address:" + register.toString() + " value(X):" + value.toString(16)

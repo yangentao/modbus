@@ -3,7 +3,7 @@
 package io.github.yangentao.modbus.emulator
 
 
-import io.github.yangentao.modbus.BusAddress
+import io.github.yangentao.modbus.proto.BusAddress
 import io.github.yangentao.modbus.busAreaFromAction
 import io.github.yangentao.modbus.checkCRC16
 import io.github.yangentao.modbus.fillCRC16

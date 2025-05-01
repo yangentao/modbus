@@ -1,8 +1,10 @@
 @file:Suppress("MemberVisibilityCanBePrivate", "unused")
 
-package io.github.yangentao.modbus
+package io.github.yangentao.modbus.proto
 
 
+import io.github.yangentao.modbus.busAreaFromAction
+import io.github.yangentao.modbus.fillCRC16
 import io.github.yangentao.types.Hex
 import io.github.yangentao.types.low0
 import io.github.yangentao.types.low1

@@ -1,7 +1,7 @@
 package io.github.yangentao.modbus.model
 
-import io.github.yangentao.modbus.BusReadRequest
-import io.github.yangentao.modbus.BusReadResponse
+import io.github.yangentao.modbus.proto.BusReadRequest
+import io.github.yangentao.modbus.proto.BusReadResponse
 import io.github.yangentao.sql.update
 import io.github.yangentao.types.*
 
@@ -155,12 +155,12 @@ class ValueSaver(
 private data class HistoryKey(val devId: Long, val address: Int)
 private data class HistoryValue(val value: Long, val time: Long)
 
-fun main() {
-    val map = HashMap<HistoryKey, Int>()
-    map[HistoryKey(1, 1)] = 11
-    map[HistoryKey(1, 1)] = 12
-    printX(map)
-}
-
+//fun main() {
+//    val map = HashMap<HistoryKey, Int>()
+//    map[HistoryKey(1, 1)] = 11
+//    map[HistoryKey(1, 1)] = 12
+//    printX(map)
+//}
+//
 
 

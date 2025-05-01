@@ -1,7 +1,7 @@
 package io.github.yangentao.modbus.service
 
-import io.github.yangentao.modbus.BusAddress
-import io.github.yangentao.modbus.BusReadRequest
+import io.github.yangentao.modbus.proto.BusAddress
+import io.github.yangentao.modbus.proto.BusReadRequest
 import io.github.yangentao.modbus.model.PlcAddress
 
 @Synchronized
