@@ -1,8 +1,8 @@
 package io.github.yangentao.modbus.service
 
+import io.github.yangentao.modbus.model.PlcAddress
 import io.github.yangentao.modbus.proto.BusAddress
 import io.github.yangentao.modbus.proto.BusReadRequest
-import io.github.yangentao.modbus.model.PlcAddress
 
 @Synchronized
 fun findReadRequests(ver: Int, area: Int, slave: Int, autoQueryOnly: Boolean): List<BusReadRequest> {

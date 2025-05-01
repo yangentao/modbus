@@ -1,6 +1,6 @@
 @file:Suppress("MemberVisibilityCanBePrivate")
 
-package io.github.yangentao.modbus
+package io.github.yangentao.modbus.tcp
 
 import io.github.yangentao.modbus.proto.BusRequest
 import io.github.yangentao.modbus.proto.BusResponse

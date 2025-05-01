@@ -1,6 +1,6 @@
 package io.github.yangentao.modbus.emulator
 
-import io.github.yangentao.modbus.writeBus
+import io.github.yangentao.modbus.tcp.writeBus
 import io.github.yangentao.tcp.TcpClient
 import io.github.yangentao.tcp.TcpClientCallback
 import io.github.yangentao.tcp.frames.RawFrame

@@ -16,7 +16,7 @@ plugins {
 
 group = "io.github.yangentao"
 
-version = "1.0.1"
+version = "1.0.2"
 val artifactName = "modbus"
 val githubLib = "modbus"
 val descLib = "Modbus, Kotlin."
@@ -33,7 +33,7 @@ dependencies {
     implementation(kotlin("reflect"))
     implementation(kotlin("stdlib"))
     api("io.github.yangentao:tcp:[1.0.0,)")
-    api("io.github.yangentao:types:[1.0.2,)")
+    api("io.github.yangentao:types:[1.0.3,)")
     api("io.github.yangentao:sql:[1.0.0,)")
 }
 

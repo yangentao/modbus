@@ -2,9 +2,9 @@
 
 package io.github.yangentao.modbus.service
 
+import io.github.yangentao.modbus.BusTasks
 import io.github.yangentao.modbus.proto.BusRequest
 import io.github.yangentao.modbus.proto.BusResponse
-import io.github.yangentao.modbus.BusTasks
 import io.github.yangentao.types.ListMap
 import io.github.yangentao.types.TimeValue
 import io.github.yangentao.types.appendAll

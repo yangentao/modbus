@@ -12,12 +12,19 @@ abstract class BusEndpoint(val context: BusContext) {
 
     abstract fun onMessage(message: BusMessage)
     abstract fun onResponse(request: BusRequest, response: BusResponse)
-    abstract fun onIdent(message: IDBusMessage)
+
+    open fun onIdent(message: IDBusMessage) {
+        if (this.identName == null) this.identName = message.identName
+        this.identValue = message.identValue
+        identContextMap[message.identValue] = context
+    }
 
     open fun onCreate() {}
 
     open fun onClose() {
         context.cancelAllQueryTasks()
+        val ident = this.identValue ?: return
+        identContextMap.remove(ident)
     }
 
     companion object {
