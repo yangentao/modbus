@@ -16,7 +16,7 @@ plugins {
 
 group = "io.github.yangentao"
 
-version = "1.0.2"
+version = "1.0.5"
 val artifactName = "modbus"
 val githubLib = "modbus"
 val descLib = "Modbus, Kotlin."

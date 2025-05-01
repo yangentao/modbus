@@ -11,11 +11,44 @@ import io.github.yangentao.types.appendAll
 import io.github.yangentao.types.timeSeconds
 
 abstract class BusContext {
+    private val lock = Object();
+    private var lastResponse: BusResponse? = null
+
     private var queryTasks: ArrayList<AutoRequestTask> = ArrayList()
 
     abstract val isActive: Boolean
-    abstract fun send(request: BusRequest, timeoutSeconds: Int = 10): BusResponse?
     abstract fun closeSync()
+    abstract fun writeBytes(data: ByteArray): Boolean
+
+    fun send(request: BusRequest, timeoutSeconds: Long = 10): BusResponse? {
+        synchronized(lock) {
+            if (writeRequest(request)) {
+                if (timeoutSeconds > 0) {
+                    lock.wait(timeoutSeconds * 1000L)
+                    val r = lastResponse
+                    lastResponse = null
+                    return r
+                }
+            }
+        }
+        return null
+    }
+
+    @Synchronized
+    fun parseResponse(data: ByteArray): BusResponse? {
+        synchronized(lock) {
+            val resp = BusResponse.parse(data) ?: return null
+            lastResponse = resp
+            lock.notify()
+            return resp
+        }
+    }
+
+    fun writeRequest(request: BusRequest): Boolean {
+        val b = writeBytes(request.bytes)
+        Thread.sleep(5)
+        return b
+    }
 
     fun cancelAllQueryTasks() {
         queryTasks.forEach { it.cancel() }

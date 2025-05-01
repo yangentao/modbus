@@ -5,6 +5,7 @@ package io.github.yangentao.modbus.tcp
 import io.github.yangentao.modbus.proto.BusRequest
 import io.github.yangentao.modbus.proto.BusResponse
 import io.github.yangentao.modbus.service.BusApp
+import io.github.yangentao.modbus.service.BusContext
 import io.github.yangentao.modbus.service.BusEndpoint
 import io.github.yangentao.modbus.service.IDBusMessage
 import io.github.yangentao.tcp.*
@@ -20,34 +21,35 @@ import java.nio.channels.SelectionKey
 class BusServer(val port: Int, val app: BusApp, val secondsIdle: Int = 90) : TcpServerCallback {
 
     private var tcpServer: TcpServer? = null
-    private val identMap: HashMap<String, SelectionKey> = HashMap()
+    private val identMap: HashMap<String, BusContext> = HashMap()
     val allClients: List<SelectionKey> get() = tcpServer?.clientKeys ?: emptyList()
 
     fun setIdent(key: SelectionKey, ident: String?) {
         if (ident == null) {
             val k = key.ident ?: return
-            identMap.get(k)?.close()
+            identMap[k]?.closeSync()
             identMap.remove(k)
             key.ident = null
-            return
+        } else {
+            identMap[ident]?.closeSync()
+            key.context?.also {
+                identMap[ident] = it
+            }
+            key.ident = ident
         }
-        identMap[ident]?.close()
-        identMap[ident] = key
-        key.ident = ident
-
     }
 
     fun send(ident: String, request: BusRequest): BusResponse? {
-        return identMap[ident]?.modbus?.send(request)
+        return identMap[ident]?.send(request)
     }
 
     fun send(key: SelectionKey, request: BusRequest): BusResponse? {
-        return key.modbus.send(request)
+        return key.context?.send(request)
     }
 
     fun isOnline(ident: String): Boolean {
         val k = identMap[ident] ?: return false
-        return k.isValid
+        return k.isActive
     }
 
     fun stop() {
@@ -70,9 +72,9 @@ class BusServer(val port: Int, val app: BusApp, val secondsIdle: Int = 90) : Tcp
         val ident = key.ident
         if (ident != null) {
             key.endpoint?.onClose()
-            key.endpoint = null
             identMap.remove(ident)
         }
+        key.endpoint = null
         printX("CLOSE CLIENT: ident $ident,   total count:  ${key.selector().keyCount}")
     }
 
@@ -87,7 +89,7 @@ class BusServer(val port: Int, val app: BusApp, val secondsIdle: Int = 90) : Tcp
     override fun onTcpRecvFrame(key: SelectionKey, data: ByteArray) {
         printX("RECV ident:", key.ident, "  DATA: ", Hex.encode(data))
         try {
-            val resp = key.modbus.parseResponse(data)
+            val resp = key.context?.parseResponse(data)
             if (resp != null) return
             try {
                 val text = data.toString(Charsets.US_ASCII)
@@ -108,3 +110,4 @@ class BusServer(val port: Int, val app: BusApp, val secondsIdle: Int = 90) : Tcp
 }
 
 var SelectionKey.endpoint: BusEndpoint? by SelectionKeyValue
+val SelectionKey.context: BusContext? get() = this.endpoint?.context

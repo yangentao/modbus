@@ -1,9 +1,9 @@
 package io.github.yangentao.modbus.emulator
 
-import io.github.yangentao.modbus.tcp.writeBus
 import io.github.yangentao.tcp.TcpClient
 import io.github.yangentao.tcp.TcpClientCallback
 import io.github.yangentao.tcp.frames.RawFrame
+import io.github.yangentao.tcp.write
 import io.github.yangentao.types.Rand
 import java.nio.channels.SelectionKey
 import java.util.concurrent.Executors
@@ -46,10 +46,10 @@ class BusDevice : TcpClientCallback {
     }
 
     override fun onTcpConnect(key: SelectionKey, success: Boolean) {
-        key.writeBus(registerPackage)
+        key.write(registerPackage)
         heartTask = taskService.scheduleWithFixedDelay({
             if (key.isValid) {
-                key.writeBus(heartPackage())
+                key.write(heartPackage())
             } else {
                 heartTask?.cancel(false)
                 heartTask = null
@@ -60,7 +60,7 @@ class BusDevice : TcpClientCallback {
     override fun onTcpRecvFrame(key: SelectionKey, data: ByteArray) {
         try {
             val bytes = emulator.processRequest(data)
-            key.writeBus(bytes)
+            key.write(bytes)
         } catch (ex: Exception) {
             ex.printStackTrace()
         }

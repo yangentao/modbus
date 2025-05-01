@@ -39,7 +39,7 @@ abstract class BusEndpoint(val context: BusContext) {
             return HashSet(identContextMap.keys)
         }
 
-        fun sendTo(ident: String, request: BusRequest, timeoutSeconds: Int = 10): BusResponse? {
+        fun sendTo(ident: String, request: BusRequest, timeoutSeconds: Long = 10): BusResponse? {
             return find(ident)?.send(request, timeoutSeconds)
         }
     }
