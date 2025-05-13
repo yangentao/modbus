@@ -5,7 +5,6 @@ import io.github.yangentao.modbus.proto.BusResponse
 import java.util.concurrent.ConcurrentHashMap
 
 abstract class BusEndpoint(val context: BusContext) {
-    var autoQueryDelaySeconds: Int? = null
     var slaves: Set<Int>? = null
     var identName: String? = null
     var identValue: String? = null
@@ -19,10 +18,12 @@ abstract class BusEndpoint(val context: BusContext) {
         identContextMap[message.identValue] = context
     }
 
-    open fun onCreate() {}
+    open fun onCreate() {
+        context.startAutoQuery()
+    }
 
     open fun onClose() {
-        context.cancelAllQueryTasks()
+        context.cancelAutoQuery()
         val ident = this.identValue ?: return
         identContextMap.remove(ident)
     }

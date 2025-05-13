@@ -1,19 +1,29 @@
 package io.github.yangentao.modbus.service
 
+import io.github.yangentao.modbus.model.PlcAddress
+import io.github.yangentao.modbus.proto.BusAddress
+import io.github.yangentao.modbus.proto.BusReadRequest
 import io.github.yangentao.types.PatternText
 import io.github.yangentao.types.patternText
 import kotlin.reflect.KClass
 
 /// "HELLO {ident}"
-open class BusApp(val endpoint: KClass<out BusEndpoint>, val identMessage: String?, val identName: String? = null) {
+open class BusApp(val endpoint: KClass<out BusEndpoint>, val identMessage: String?, val identName: String? = null, var querySeconds: Long = 30) {
     val identPattern: PatternText? = identMessage?.patternText
 
     var messages: HashSet<String> = HashSet()
     var slaves: HashSet<Int> = hashSetOf(1)
-    var autoQueryDelaySeconds: Int = 30
+
+    private var readRequestMap: Map<Pair<Int, Int>, List<BusReadRequest>> = emptyMap()
+    private val allVers: HashSet<Int> = HashSet()
+
+    val versions: Set<Int> get() = allVers.toSet()
 
     open fun onCreate() {}
-    open fun onService() {}
+    open fun onService() {
+        buildReadRequests(force = true)
+    }
+
     open fun onDestroy() {}
 
     fun message(msg: String) {
@@ -34,6 +44,54 @@ open class BusApp(val endpoint: KClass<out BusEndpoint>, val identMessage: Strin
             }
         }
         return null
+    }
+
+    fun buildReadRequests(force: Boolean = false) {
+        if (force || readRequestMap.isEmpty()) {
+            val result = HashMap<Pair<Int, Int>, List<BusReadRequest>>()
+            val addrList = PlcAddress.all(null)
+            val verSet = HashSet<Int>()
+            for (ad in addrList) {
+                verSet.add(ad.ver)
+            }
+            for (v in verSet) {
+                for (a in BusAddress.areaList) {
+                    result[v to a] = makeReadRequestBy(addrList, v, a)
+                }
+            }
+            readRequestMap = result
+            allVers.clear()
+            allVers.addAll(verSet)
+        }
+    }
+
+    @Synchronized
+    fun findQueryRequests(ver: Int, area: Int): List<BusReadRequest> {
+        buildReadRequests()
+        return readRequestMap[ver to area] ?: emptyList()
+    }
+
+    private fun makeReadRequestBy(addrList: List<PlcAddress>, ver: Int, area: Int): List<BusReadRequest> {
+        val ls = addrList.filter { it.ver == ver && it.area == area && it.autoQuery >= 1 }.sortedBy { it.address }
+        val result: ArrayList<BusReadRequest> = ArrayList();
+        if (ls.isEmpty()) return result
+        val extraAddrSize = if (area in 3..4) 1 else 0
+        val seg = ArrayList<PlcAddress>()
+        for (ad in ls) {
+            if (seg.isEmpty()) {
+                seg.add(ad)
+                continue
+            }
+            if (ad.address > seg.last().address + 2) {
+                result += BusReadRequest(BusAddress(seg.first().address), 1 + (seg.last().address + extraAddrSize) - seg.first().address)
+                seg.clear()
+            }
+            seg.add(ad)
+        }
+        if (seg.isNotEmpty()) {
+            result += BusReadRequest(BusAddress(seg.first().address), 1 + (seg.last().address + extraAddrSize) - seg.first().address)
+        }
+        return result
     }
 
 }

@@ -50,7 +50,7 @@ fun ByteArray.floatValuePLC(offset: Int): Float {
     return java.lang.Float.intBitsToFloat(n)
 }
 
-object BusTasks {
+internal object BusTasks {
     val service: ScheduledExecutorService = Executors.newScheduledThreadPool(4) {
         Thread(it, "TaskScheduled").apply {
             isDaemon = true

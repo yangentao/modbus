@@ -18,7 +18,7 @@ import java.nio.channels.SelectionKey
 /**
  * Modbus Server
  */
-class BusServer(val port: Int, val app: BusApp, val secondsIdle: Int = 90) : TcpServerCallback {
+class TcpBusServer(val port: Int, val app: BusApp, val secondsIdle: Int = 90) : TcpServerCallback {
 
     private var tcpServer: TcpServer? = null
     private val identMap: HashMap<String, BusContext> = HashMap()
@@ -80,7 +80,7 @@ class BusServer(val port: Int, val app: BusApp, val secondsIdle: Int = 90) : Tcp
 
     override fun onTcpAccept(key: SelectionKey) {
         printX("ACCEPT, total count ${key.selector().keyCount}")
-        val ctx = TcpBusContext(key)
+        val ctx = TcpBusContext(key, app)
         val inst: BusEndpoint = app.endpoint.createInstanceArgOne(ctx) as? BusEndpoint ?: return
         key.endpoint = inst
         inst.onCreate()
@@ -90,7 +90,10 @@ class BusServer(val port: Int, val app: BusApp, val secondsIdle: Int = 90) : Tcp
         printX("RECV ident:", key.ident, "  DATA: ", Hex.encode(data))
         try {
             val resp = key.context?.parseResponse(data)
-            if (resp != null) return
+            if (resp != null) {
+                key.endpoint?.onResponse(key.context!!.lastRequest!!, resp)
+                return
+            }
             try {
                 val text = data.toString(Charsets.US_ASCII)
                 if (text.isEmpty()) return
