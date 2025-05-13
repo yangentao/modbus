@@ -2,13 +2,13 @@ package io.github.yangentao.modbus.model
 
 import io.github.yangentao.modbus.proto.BusReadRequest
 import io.github.yangentao.modbus.proto.BusReadResponse
-import io.github.yangentao.sql.update
 import io.github.yangentao.types.*
 
-class ValueSaver(
-    private val dev: Dev,
+class PlcValueSaver(
     private val req: BusReadRequest,
     private val resp: BusReadResponse,
+    private val devId: Long,
+    private val ver: Int,
     private val dateTime: DateTime = DateTime.now
 ) {
 
@@ -37,7 +37,7 @@ class ValueSaver(
     //返回是否有警告
     private fun saveAreaBits(area: Int): Boolean {
         assert(area == 0 || area == 1)
-        val addrList = PlcAddress.area(dev.ver, area)
+        val addrList = PlcAddress.area(ver, area)
         if (addrList.isEmpty()) return false
 
         val nList: List<Int> = resp.data.toBitList()
@@ -49,100 +49,99 @@ class ValueSaver(
             val ad: PlcAddress = addrList.firstOrNull { it.address == addr } ?: continue
             val v = nList[i]
             updateValue(addr, v.toString(), Hex.encode(v))
-            if (dev.ver == 0 && v != 0 && addr in 10009..10018) {
-                warn = true
-            }
+            warn = warn or ad.isWarning(v)
         }
         return warn
     }
 
     //3,4区, 一个地址2个字节, 一个值占两个地址(4个字节),  addrCount是地址数量, 不是值的数量
-    private fun saveAreaBytes(area: Int) {
+    private fun saveAreaBytes(area: Int): Boolean {
         assert(area == 3 || area == 4)
-        val addrList = PlcAddress.area(dev.ver, area)
-        if (addrList.isEmpty()) return
+        val addrList = PlcAddress.area(ver, area)
+        if (addrList.isEmpty()) return false
 
         val startAddress: Int = req.address.register
         val addrCount: Int = minValue(req.addressCount, resp.size / 2)
+
+        var warn: Boolean = false
 
         var i = 0
         while (i < addrCount) {
             val address = startAddress + i + 1 + area * 10000
             val ad: PlcAddress? = addrList.firstOrNull { it.address == address }
-            if (ad != null) {
-                val a = resp.data[i * 2]
-                val b = resp.data[i * 2 + 1]
+            if (ad == null) {
+                i += 1
+                continue
+            }
+            val a = resp.data[i * 2]
+            val b = resp.data[i * 2 + 1]
 
-                if (AddrType.isByte4(ad.addrType)) {
-                    if (i + 1 < addrCount) {
-                        val c = resp.data[i * 2 + 2]
-                        val d = resp.data[i * 2 + 3]
-                        val v = bytes2Value(ad.addrType!!, a, b, c, d)
-                        if (v is Float) {
-                            updateValue(address, v.format("#.##"), Hex.encode(byteArrayOf(a, b, c, d)))
-                        } else {
-                            updateValue(address, v.toString(), Hex.encode(byteArrayOf(a, b, c, d)))
-                        }
+            if (AddrType.isByte4(ad.addrType)) {
+                if (i + 1 < addrCount) {
+                    val c = resp.data[i * 2 + 2]
+                    val d = resp.data[i * 2 + 3]
+                    val v = bytes2Value(ad.addrType!!, a, b, c, d)
+                    if (v is Float) {
+                        updateValue(address, v.format("#.###"), Hex.encode(byteArrayOf(a, b, c, d)))
+                    } else {
+                        updateValue(address, v.toString(), Hex.encode(byteArrayOf(a, b, c, d)))
+                        warn = warn or ad.isWarning(v as Int)
                     }
-                    i += 1
-                } else {
-                    val v = bytes2Value(ad.addrType ?: AddrType.DEFAULT, a, b)
-                    updateValue(address, v.toString(), Hex.encode(byteArrayOf(a, b)))
                 }
+                i += 1
+            } else {
+                val v = bytes2Value(ad.addrType ?: AddrType.N10, a, b)
+                updateValue(address, v.toString(), Hex.encode(byteArrayOf(a, b)))
+                warn = warn or ad.isWarning(v)
             }
             i += 1
         }
+        return warn
     }
 
     private fun updateValue(address: Int, valueText: String, valueHex: String) {
         val doubleValue: Double = valueText.toDoubleOrNull() ?: 0.0
-        val longValue: Long = (doubleValue * 100).toLong()
+        val longValue: Long = (doubleValue * 1000).toLong()
         val v = PlcValue()
-        v.devId = dev.id
+        v.devId = devId
         v.address = address
         v.updateDateTime = dateTime.formatDateTime()
         v.valueText = valueText
         v.valueHex = valueHex
-        v.valueLong = longValue
+        v.value1000 = longValue
         v.upsert()
 
-        val plcAddr = PlcAddress.addr(dev.ver, address) ?: return
+        val plcAddr = PlcAddress.addr(ver, address) ?: return
         if (plcAddr.recordHistory == 0) return
         val valueMap: Long = if (plcAddr.historyMod > 0) {
             longValue / plcAddr.historyMod
         } else {
             longValue
         }
-        val hisKey = HistoryKey(dev.id, address)
+        val hisKey = HistoryKey(devId, address)
         val hisValue = HistoryValue(valueMap, dateTime.timeInMillis)
         val oldHisValue = historyMap[hisKey]
         if (oldHisValue == null || oldHisValue.value != hisValue.value || (oldHisValue.time + 3600_000L < hisValue.time)) {
             historyMap[hisKey] = hisValue
             val a = PlcHistory()
-            a.devId = dev.id
+            a.devId = devId
             a.address = address
             a.createDate = dateTime.formatDate()
             a.createTime = dateTime.formatTime()
             a.valueText = valueText
             a.valueHex = valueHex
-            a.valueLong = longValue
+            a.value1000 = longValue
             a.insert()
         }
     }
 
-    fun saveResponse() {
-        when (resp.area) {
+    fun saveResponse(): Boolean {
+        return when (resp.area) {
             0 -> saveAreaBits(0)
-            1 -> {
-                val hasWarning = saveAreaBits(1)
-                dev.update {
-                    it.warnings = if (hasWarning) 1 else 0
-                }
-            }
-
+            1 -> saveAreaBits(1)
             3 -> saveAreaBytes(3)
             4 -> saveAreaBytes(4)
-            else -> return
+            else -> error("Bad Area")
         }
     }
 

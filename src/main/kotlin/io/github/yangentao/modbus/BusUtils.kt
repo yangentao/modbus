@@ -5,7 +5,9 @@ package io.github.yangentao.modbus
 import io.github.yangentao.types.*
 import java.util.concurrent.*
 
-fun busAreaFromAction(action: Int): Int {
+val Int.formatPlcAddress: String get() = this.format("00000")
+
+internal fun busAreaFromAction(action: Int): Int {
     return when (action) {
         1, 5, 0x0F, 0x81, 0x85, 0x8F -> 0
         2, 0x82 -> 1
@@ -15,9 +17,7 @@ fun busAreaFromAction(action: Int): Int {
     }
 }
 
-val Int.formatPlcAddress: String get() = this.format("00000")
-
-fun ByteArray.fillCRC16(maxSize: Int = 1024) {
+internal fun ByteArray.fillCRC16(maxSize: Int = 1024) {
     if (this.size > maxSize) return
     if (this.size < 3) return
     val data = this
@@ -27,7 +27,7 @@ fun ByteArray.fillCRC16(maxSize: Int = 1024) {
 }
 
 //查询最多可以是125个地址,  250个字节
-fun ByteArray.checkCRC16(maxSize: Int = 260): Boolean {
+internal fun ByteArray.checkCRC16(maxSize: Int = 260): Boolean {
     val data = this
     if (data.size > maxSize) return false
     if (data.size < 3) return false
@@ -35,20 +35,20 @@ fun ByteArray.checkCRC16(maxSize: Int = 260): Boolean {
     return a.low0 == data[data.size - 1] && a.low1 == data[data.size - 2]
 }
 
-fun ByteArray.shortValuePLC(offset: Int): Int {
-    return (this[offset + 1].toInt() and 0xFF) or (this[offset].toInt() shl 8)
-}
+//fun ByteArray.shortValuePLC(offset: Int): Int {
+//    return (this[offset + 1].toInt() and 0xFF) or (this[offset].toInt() shl 8)
+//}
 
-fun ByteArray.intValuePLC(offset: Int): Int {
-    //b0, b1, b2, b3 => b1, b0, b3, b2
-    return bytes2Int(this[offset + 1].toInt(), this[offset].toInt(), this[offset + 3].toInt(), this[offset + 2].toInt())
-}
+//fun ByteArray.intValuePLC(offset: Int): Int {
+//    //b0, b1, b2, b3 => b1, b0, b3, b2
+//    return bytes2Int(this[offset + 1].toInt(), this[offset].toInt(), this[offset + 3].toInt(), this[offset + 2].toInt())
+//}
 
-fun ByteArray.floatValuePLC(offset: Int): Float {
-    //b0, b1, b2, b3 => b1, b0, b3, b2
-    val n = this.intValuePLC(offset)
-    return java.lang.Float.intBitsToFloat(n)
-}
+//fun ByteArray.floatValuePLC(offset: Int): Float {
+//    //b0, b1, b2, b3 => b1, b0, b3, b2
+//    val n = this.intValuePLC(offset)
+//    return java.lang.Float.intBitsToFloat(n)
+//}
 
 internal object BusTasks {
     val service: ScheduledExecutorService = Executors.newScheduledThreadPool(4) {

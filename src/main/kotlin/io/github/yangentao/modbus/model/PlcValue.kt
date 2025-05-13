@@ -1,6 +1,5 @@
 package io.github.yangentao.modbus.model
 
-
 import io.github.yangentao.anno.Label
 import io.github.yangentao.anno.ModelField
 import io.github.yangentao.kson.KsonObject
@@ -19,9 +18,9 @@ class PlcValue : TableModel() {
     @ModelField(primaryKey = true)
     var address: Int by model
 
+    //原始值*1000
     @ModelField(index = true, defaultValue = "0")
-    //原始值*100
-    var valueLong: Long by model
+    var value1000: Long by model
 
     @ModelField
     var valueText: String? by model

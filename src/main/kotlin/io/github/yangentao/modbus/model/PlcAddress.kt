@@ -1,21 +1,15 @@
 package io.github.yangentao.modbus.model
 
-import io.github.yangentao.anno.Exclude
 import io.github.yangentao.anno.Label
 import io.github.yangentao.anno.Length
 import io.github.yangentao.anno.ModelField
-import io.github.yangentao.kson.KsonObject
 import io.github.yangentao.modbus.proto.BusAddress
 import io.github.yangentao.modbus.proto.BusWriteRequest
 import io.github.yangentao.sql.TableModel
 import io.github.yangentao.sql.TableModelClass
 import io.github.yangentao.sql.clause.ASC
 import io.github.yangentao.sql.clause.ORDER_BY
-import io.github.yangentao.sql.toJson
 import io.github.yangentao.types.low0
-import io.github.yangentao.types.low1
-import io.github.yangentao.types.low2
-import io.github.yangentao.types.low3
 
 //40001 从1开始
 @Label("PLC地址")
@@ -59,6 +53,18 @@ class PlcAddress : TableModel() {
     @Label("只读")
     @ModelField(defaultValue = "0")
     var readonly: Int by model
+
+    @Label("报警标志")
+    @ModelField(defaultValue = "0")
+    var iswarn: Int by model
+
+    @Label("报警值")
+    @ModelField
+    var warnTrue: Int? by model
+
+    @Label("非报警值")
+    @ModelField
+    var warnFalse: Int? by model
 
     @Label("备注")
     @ModelField
@@ -107,55 +113,25 @@ class PlcAddress : TableModel() {
     val area: Int get() = address / 10000
     val register: Int get() = address % 10000 - 1
 
-    //报警标志, 比如 1
-    @Exclude
-    var warnValue: Int? = null
-
-    //value != XX
-    @Exclude
-    var warnNot: Boolean = false
-
-    fun json(): KsonObject {
-        return this.toJson(includes = listOf(this::area, this::register))
-    }
-
     fun writeValue(value: String): BusWriteRequest? {
         return writeValueTo(this.addrType, this.address, value)
+    }
+
+    fun isWarning(value: Int): Boolean {
+        if (this.iswarn != 1) return false
+        if (this.warnTrue == value) return true
+        return this.warnFalse != null && this.warnFalse != value
     }
 
     companion object : TableModelClass<PlcAddress>() {
         private var addressList: List<PlcAddress> = emptyList()
         private var addressMap: Map<Int, PlcAddress> = emptyMap()
+
         fun trySync(force: Boolean = false) {
             if (force || addressList.isEmpty()) {
                 addressList = list { ORDER_BY(PlcAddress::address.ASC) }
                 addressMap = addressList.associateBy { it.ver * 100_000 + it.address }
-                for (a in addressList) {
-                    checkWarnFlag(a)
-                }
-            }
-        }
 
-        private fun checkWarnFlag(addr: PlcAddress) {
-            val def = addr.valuedef ?: return
-            val ls = def.split(';')
-            for (item in ls) {
-                if (item.contains("warn")) {
-                    val pair = item.split(':').map { it.trim() }
-                    if (pair.size >= 2) {
-                        if (pair[0] == "warn") {
-                            val value = pair[1]
-                            if (value.startsWith('!')) {
-                                addr.warnNot = true
-                                addr.warnValue = value.substring(1).toInt()
-                            } else {
-                                addr.warnNot = false
-                                addr.warnValue = value.toInt()
-                            }
-                            return
-                        }
-                    }
-                }
             }
         }
 
@@ -181,28 +157,17 @@ class PlcAddress : TableModel() {
             val addr = BusAddress(address)
             return when (addr.area) {
                 0 -> addr.write(1, byteArrayOf((intVal and 0x01).low0))
-
                 4 -> {
-                    when (addrType) {
-                        "F4", "F1032" -> {
-                            val v = java.lang.Float.floatToIntBits(floatValue)
-                            addr.write(2, byteArrayOf(v.low1, v.low0, v.low3, v.low2))
-                        }
-
-                        "F0123" -> {
-                            val v = java.lang.Float.floatToIntBits(floatValue)
-                            addr.write(2, byteArrayOf(v.low0, v.low1, v.low2, v.low3))
-                        }
-
-                        "N4", "N1032" -> addr.write(2, byteArrayOf(intVal.low1, intVal.low0, intVal.low3, intVal.low2))
-                        "N0123" -> addr.write(2, byteArrayOf(intVal.low0, intVal.low1, intVal.low2, intVal.low3))
-                        "N2", "N10" -> addr.write(1, byteArrayOf(intVal.low1, intVal.low0))
-                        "N01" -> addr.write(1, byteArrayOf(intVal.low0, intVal.low1))
-                        else -> addr.write(1, byteArrayOf(intVal.low1, intVal.low0))
+                    val t = addrType ?: "N10"
+                    val bytes = addressType2Bytes(t, floatValue, intVal)
+                    if (AddrType.isByte4(t)) {
+                        addr.write(2, bytes)
+                    } else {
+                        addr.write(1, bytes)
                     }
                 }
 
-                else -> return null
+                else -> null
             }
         }
 

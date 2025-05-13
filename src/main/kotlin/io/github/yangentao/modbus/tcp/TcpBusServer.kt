@@ -12,7 +12,7 @@ import io.github.yangentao.tcp.*
 import io.github.yangentao.tcp.frames.RawFrame
 import io.github.yangentao.types.Hex
 import io.github.yangentao.types.createInstanceArgOne
-import io.github.yangentao.types.printX
+import io.github.yangentao.xlog.TagLog
 import java.nio.channels.SelectionKey
 
 /**
@@ -75,11 +75,11 @@ class TcpBusServer(val port: Int, val app: BusApp, val secondsIdle: Int = 90) : 
             identMap.remove(ident)
         }
         key.endpoint = null
-        printX("CLOSE CLIENT: ident $ident,   total count:  ${key.selector().keyCount}")
+        busLog.d("CLOSE CLIENT: ident $ident,   total count:  ${key.selector().keyCount}")
     }
 
     override fun onTcpAccept(key: SelectionKey) {
-        printX("ACCEPT, total count ${key.selector().keyCount}")
+        busLog.d("ACCEPT, total count ${key.selector().keyCount}")
         val ctx = TcpBusContext(key, app)
         val inst: BusEndpoint = app.endpoint.createInstanceArgOne(ctx) as? BusEndpoint ?: return
         key.endpoint = inst
@@ -87,11 +87,14 @@ class TcpBusServer(val port: Int, val app: BusApp, val secondsIdle: Int = 90) : 
     }
 
     override fun onTcpRecvFrame(key: SelectionKey, data: ByteArray) {
-        printX("RECV ident:", key.ident, "  DATA: ", Hex.encode(data))
+        busLog.d("RECV ident:", key.ident, "  DATA: ", Hex.encode(data))
         try {
             val resp = key.context?.parseResponse(data)
             if (resp != null) {
-                key.endpoint?.onResponse(key.context!!.lastRequest!!, resp)
+                val req = key.context?.lastRequest
+                if (req != null) {
+                    key.endpoint?.onResponse(req, resp)
+                }
                 return
             }
             try {
@@ -107,10 +110,12 @@ class TcpBusServer(val port: Int, val app: BusApp, val secondsIdle: Int = 90) : 
             } catch (ex: Exception) {
             }
         } catch (ex: Exception) {
-            printX(ex)
+            busLog.e(ex)
         }
     }
 }
 
 var SelectionKey.endpoint: BusEndpoint? by SelectionKeyValue
 val SelectionKey.context: BusContext? get() = this.endpoint?.context
+
+val busLog = TagLog("modbus")

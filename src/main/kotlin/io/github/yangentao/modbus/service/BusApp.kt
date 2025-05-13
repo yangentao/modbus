@@ -82,14 +82,15 @@ open class BusApp(val endpoint: KClass<out BusEndpoint>, val identMessage: Strin
                 seg.add(ad)
                 continue
             }
-            if (ad.address > seg.last().address + 2) {
-                result += BusReadRequest(BusAddress(seg.first().address), 1 + (seg.last().address + extraAddrSize) - seg.first().address)
+            val addrSize = 1 + extraAddrSize + seg.last().address - seg.first().address
+            if (ad.address > seg.last().address + 2 || addrSize >= 125 - 2) {
+                result += BusReadRequest(BusAddress(seg.first().address), addrSize)
                 seg.clear()
             }
             seg.add(ad)
         }
         if (seg.isNotEmpty()) {
-            result += BusReadRequest(BusAddress(seg.first().address), 1 + (seg.last().address + extraAddrSize) - seg.first().address)
+            result += BusReadRequest(BusAddress(seg.first().address), 1 + extraAddrSize + seg.last().address - seg.first().address)
         }
         return result
     }
