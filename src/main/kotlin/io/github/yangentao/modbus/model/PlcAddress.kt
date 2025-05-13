@@ -1,7 +1,5 @@
 package io.github.yangentao.modbus.model
 
-
-
 import io.github.yangentao.anno.Exclude
 import io.github.yangentao.anno.Label
 import io.github.yangentao.anno.Length
@@ -78,6 +76,11 @@ class PlcAddress : TableModel() {
     @ModelField
     var display: String? by model
 
+    @Label("单位")
+    @Length(max = 16)
+    @ModelField
+    var unit: String? by model
+
     @Label("记录历史数据")
     @ModelField(defaultValue = "0")
     var recordHistory: Int by model
@@ -92,6 +95,10 @@ class PlcAddress : TableModel() {
     @Label("历史数据")
     @ModelField(defaultValue = "0")
     var historyMod: Int by model
+
+    @Label("第二页显示")
+    @ModelField(defaultValue = "0")
+    var page2: Int by model
 
     @Label("定时查询")
     @ModelField(defaultValue = "0")
