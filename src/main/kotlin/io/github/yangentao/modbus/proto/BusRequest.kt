@@ -2,7 +2,6 @@
 
 package io.github.yangentao.modbus.proto
 
-
 import io.github.yangentao.modbus.busAreaFromAction
 import io.github.yangentao.modbus.fillCRC16
 import io.github.yangentao.types.Hex
@@ -25,13 +24,23 @@ abstract class BusRequest(val bytes: ByteArray) {
 
 class BusWriteOneRequest(val address: BusAddress, val value: Int) : BusRequest(ByteArray(8)) {
     init {
+        val v: Int = if (value == 0 || value == A0_ON) {
+            value
+        } else if (A0_ON_ALLOW_1 && value == 1) {
+            A0_ON
+        } else error("Bad Value set to area 0:${address}")
         bytes[0] = address.slave.low0
         bytes[1] = address.writeOneAction.low0
         bytes[2] = address.register.low1
         bytes[3] = address.register.low0
-        bytes[4] = value.low1
-        bytes[5] = value.low0
+        bytes[4] = v.low1
+        bytes[5] = v.low0
         bytes.fillCRC16()
+    }
+
+    companion object {
+        var A0_ON: Int = 0x00ff00
+        var A0_ON_ALLOW_1: Boolean = true
     }
 }
 

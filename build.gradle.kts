@@ -7,7 +7,7 @@ buildscript {
     }
 }
 plugins {
-    kotlin("jvm") version "2.1.20"
+    kotlin("jvm") version "2.2.0"
     signing
     id("maven-publish")
     id("org.jetbrains.dokka") version "2.0.0"
@@ -16,7 +16,7 @@ plugins {
 
 group = "io.github.yangentao"
 
-version = "1.1.0"
+version = "2.0.0"
 val artifactName = "modbus"
 val githubLib = "modbus"
 val descLib = "Modbus, Kotlin."
@@ -32,10 +32,10 @@ dependencies {
     testImplementation(kotlin("test"))
     implementation(kotlin("reflect"))
     implementation(kotlin("stdlib"))
-    api("io.github.yangentao:tcp:[1.0.0,)")
-    api("io.github.yangentao:types:[1.1.0,)")
-    api("io.github.yangentao:sql:[1.1.0,)")
-    api("io.github.yangentao:xlog:[1.0.5,)")
+    api("io.github.yangentao:tcp:[2.0.0,)")
+    api("io.github.yangentao:types:[2.0.0,)")
+    api("io.github.yangentao:sql:[2.0.0,)")
+    api("io.github.yangentao:xlog:[2.0.0,)")
 }
 
 tasks.test {

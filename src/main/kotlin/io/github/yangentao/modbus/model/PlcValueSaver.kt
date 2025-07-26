@@ -48,7 +48,7 @@ class PlcValueSaver(
             val addr = area * 10000 + 1 + startAddress + i
             val ad: PlcAddress = addrList.firstOrNull { it.address == addr } ?: continue
             val v = nList[i]
-            updateValue(addr, v.toString(), Hex.encode(v))
+            updateValue(addr, v.toString(), Hex.encodeByte(v))
             warn = warn or ad.isWarning(v)
         }
         return warn
